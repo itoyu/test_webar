@@ -66,36 +66,45 @@
     </a-scene>
 
     <script>
-      const overlay = document.getElementById('tap-to-start');
-      const video = document.getElementById('ar-video');
-      const sceneEl = document.querySelector('a-scene');
-      const target = document.querySelector('[mindar-image-target]');
+  const overlay = document.getElementById('tap-to-start');
+  const video = document.getElementById('ar-video');
+  const sceneEl = document.querySelector('a-scene');
+  const target = document.querySelector('[mindar-image-target]');
 
-      window.addEventListener('load', () => {
-        overlay.style.display = 'flex';
-      });
+  window.addEventListener('load', () => {
+    overlay.style.display = 'flex';
+  });
 
-      overlay.addEventListener('click', async () => {
-        overlay.style.display = 'none';
+  overlay.addEventListener('click', async () => {
+    overlay.style.display = 'none';
 
-        // iOSの自動再生制限を回避
-        try {
-          await video.play();
-          video.pause();
-          video.currentTime = 0;
-        } catch(e) {}
+    // iOSに明示的にカメラ許可をリクエスト
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach(track => track.stop());
+    } catch(e) {
+      alert('カメラの許可が必要です。設定からカメラを許可してください。');
+      return;
+    }
 
-        // MindAR開始
-        sceneEl.systems['mindar-image-system'].start();
-      });
+    // iOSの自動再生制限を回避
+    try {
+      await video.play();
+      video.pause();
+      video.currentTime = 0;
+    } catch(e) {}
 
-      target.addEventListener('targetFound', () => {
-        video.play();
-      });
+    // MindAR開始
+    sceneEl.systems['mindar-image-system'].start();
+  });
 
-      target.addEventListener('targetLost', () => {
-        video.pause();
-      });
-    </script>
+  target.addEventListener('targetFound', () => {
+    video.play();
+  });
+
+  target.addEventListener('targetLost', () => {
+    video.pause();
+  });
+</script>
   </body>
 </html>
