@@ -32,13 +32,13 @@
       📱 タップしてARを開始
     </div>
 
-    <a-scene
-      mindar-image="imageTargetSrc: marker/targets.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no;"
-      color-space="sRGB"
-      renderer="colorManagement: true"
-      vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: false"
-    >
+ <a-scene
+  mindar-image="imageTargetSrc: marker/targets.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no; filterMinCF: 0.001; filterBeta: 0.01;"
+  color-space="sRGB"
+  renderer="colorManagement: true"
+  vr-mode-ui="enabled: false"
+  device-orientation-permission-ui="enabled: false"
+>
       <a-assets>
         <video
           id="ar-video"
