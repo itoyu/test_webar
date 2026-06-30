@@ -3,7 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sticker AR </title>
+    <title>Sticker AR</title>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6RZBHRREXH"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-6RZBHRREXH');
+    </script>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     <style>
@@ -64,7 +72,7 @@
       <a-assets>
         <video
           id="ar-video"
-          src="videos/sample.mp4" 
+          src="videos/movie_ar1.mp4" 
           preload="auto"
           loop="true"
           muted
@@ -74,7 +82,7 @@
         ></video>
       </a-assets>
 
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-controls></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0">
         <a-video
@@ -94,7 +102,7 @@
       const sceneEl = document.querySelector('a-scene');
       const target = document.querySelector('[mindar-image-target]');
 
-      // microCMSの設定情報（ご自身の環境に合わせて書き換えてください）
+      // microCMSの設定情報
       const MICROCMS_API_URL = 'https://event-ar-sf.microcms.io/api/v1/sanrei-foods-webar-event'; 
       const MICROCMS_API_KEY = 'kXzP9fV6eb4azihllPJGAQjarF5CkVWKZLX0'; 
 
@@ -117,7 +125,7 @@
           return;
         }
 
-        // ★microCMSから「テキストだけ」を動的に取得する処理に変更
+        // microCMSから「テキストだけ」を動的に取得する処理
         try {
           const response = await fetch(MICROCMS_API_URL, {
             headers: {
@@ -154,6 +162,12 @@
           textOverlay.style.display = 'block'; // テキストを表示
         }
         video.play();
+
+        // ★追加：マーカーが認識された瞬間のイベントをGAに送信
+        gtag('event', 'ar_target_found', {
+          'event_category': 'AR_Interaction',
+          'event_label': 'Sanrei_Foods_Video_Play'
+        });
       });
 
       // マーカーを見失ったとき
