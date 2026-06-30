@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sticker AR</title>
+    <title>Sticker AR </title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     <style>
@@ -24,6 +24,26 @@
         z-index: 9999;
         text-align: center;
       }
+
+      /* テキストを表示するためのスタイル */
+      #ar-text-overlay {
+        display: none;
+        position: fixed;
+        bottom: 30px;
+        left: 5%;
+        width: 90%;
+        background: rgba(0, 0, 0, 0.75);
+        color: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: sans-serif;
+        font-size: 16px;
+        line-height: 1.4;
+        z-index: 999;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
@@ -32,17 +52,19 @@
       📱 タップしてARを開始
     </div>
 
- <a-scene
-  mindar-image="imageTargetSrc: marker/targets.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no; filterMinCF: 0.001; filterBeta: 0.01;"
-  color-space="sRGB"
-  renderer="colorManagement: true"
-  vr-mode-ui="enabled: false"
-  device-orientation-permission-ui="enabled: false"
->
+    <div id="ar-text-overlay"></div>
+
+    <a-scene
+      mindar-image="imageTargetSrc: marker/targets.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no; filterMinCF: 0.001; filterBeta: 0.01;"
+      color-space="sRGB"
+      renderer="colorManagement: true"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+    >
       <a-assets>
         <video
           id="ar-video"
-          src="videos/sample.mp4"
+          src="videos/sample.mp4" 
           preload="auto"
           loop="true"
           muted
@@ -66,45 +88,79 @@
     </a-scene>
 
     <script>
-  const overlay = document.getElementById('tap-to-start');
-  const video = document.getElementById('ar-video');
-  const sceneEl = document.querySelector('a-scene');
-  const target = document.querySelector('[mindar-image-target]');
+      const overlay = document.getElementById('tap-to-start');
+      const textOverlay = document.getElementById('ar-text-overlay');
+      const video = document.getElementById('ar-video');
+      const sceneEl = document.querySelector('a-scene');
+      const target = document.querySelector('[mindar-image-target]');
 
-  window.addEventListener('load', () => {
-    overlay.style.display = 'flex';
-  });
+      // microCMSの設定情報（ご自身の環境に合わせて書き換えてください）
+      const MICROCMS_API_URL = 'https://event-ar-sf.microcms.io/api/v1/sanrei-foods-webar-event'; 
+      const MICROCMS_API_KEY = 'kXzP9fV6eb4azihllPJGAQjarF5CkVWKZLX0'; 
 
-  overlay.addEventListener('click', async () => {
-    overlay.style.display = 'none';
+      // microCMSから取得したテキストを一時的に保存する変数
+      let fetchedText = ""; 
 
-    // iOSに明示的にカメラ許可をリクエスト
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach(track => track.stop());
-    } catch(e) {
-      alert('カメラの許可が必要です。設定からカメラを許可してください。');
-      return;
-    }
+      window.addEventListener('load', () => {
+        overlay.style.display = 'flex';
+      });
 
-    // iOSの自動再生制限を回避
-    try {
-      await video.play();
-      video.pause();
-      video.currentTime = 0;
-    } catch(e) {}
+      overlay.addEventListener('click', async () => {
+        overlay.style.display = 'none';
 
-    // MindAR開始
-    sceneEl.systems['mindar-image-system'].start();
-  });
+        // iOSに明示的にカメラ許可をリクエスト
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          stream.getTracks().forEach(track => track.stop());
+        } catch(e) {
+          alert('カメラの許可が必要です。設定からカメラを許可してください。');
+          return;
+        }
 
-  target.addEventListener('targetFound', () => {
-    video.play();
-  });
+        // ★microCMSから「テキストだけ」を動的に取得する処理に変更
+        try {
+          const response = await fetch(MICROCMS_API_URL, {
+            headers: {
+              'X-MICROCMS-API-KEY': MICROCMS_API_KEY
+            }
+          });
+          const data = await response.json();
+          
+          if (data) {
+            fetchedText = data.ar_text || ""; // テキストを取得して変数に保存
+          } else {
+            throw new Error('有効なデータが取得できませんでした。');
+          }
+        } catch (e) {
+          alert('テキストの取得に失敗しました: ' + e.message);
+          return;
+        }
 
-  target.addEventListener('targetLost', () => {
-    video.pause();
-  });
-</script>
+        // iOSの自動再生制限を回避
+        try {
+          await video.play();
+          video.pause();
+          video.currentTime = 0;
+        } catch(e) {}
+
+        // MindAR開始
+        sceneEl.systems['mindar-image-system'].start();
+      });
+
+      // マーカーが認識されたとき
+      target.addEventListener('targetFound', () => {
+        if (fetchedText) {
+          textOverlay.innerText = fetchedText; // テキストの内容を注入
+          textOverlay.style.display = 'block'; // テキストを表示
+        }
+        video.play();
+      });
+
+      // マーカーを見失ったとき
+      target.addEventListener('targetLost', () => {
+        textOverlay.style.display = 'none'; // テキストを非表示にする
+        video.pause();
+      });
+    </script>
   </body>
 </html>
