@@ -152,7 +152,7 @@
           const data = await response.json();
           
           if (data) {
-            fetchedText = data.ar_text || ""; // テキストを取得して変数に保存
+            fetchedText = data.ar_text2 || ""; // テキストを取得して変数に保存
           } else {
             throw new Error('有効なデータが取得できませんでした。');
           }
