@@ -11,7 +11,7 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      // gtag('config', 'G-6RZBHRREXH');
+      // デバッグモードを有効化
       gtag('config', 'G-6RZBHRREXH', { 'debug_mode': true });
     </script>
 
@@ -39,26 +39,24 @@
         text-align: center;
       }
 
-      /* ★変更：テキストを表示するためのスタイル（テロップ・ステッカー風） */
+      /* テキストを表示するためのスタイル（テロップ・ステッカー風） */
       #ar-text-overlay {
         display: none;
         position: fixed;
-        bottom: 40px; /* 画面下部からの位置 */
+        bottom: 40px;
         left: 5%;
         width: 90%;
-        background: transparent; /* 文字に白縁がつくため背景箱は透明にします */
-        
-        /* フォントと色の設定 */
-        color: #000; /* 文字色を「黒」に */
-        font-family: 'M PLUS Rounded 1c', sans-serif; /* Google Fontを適用 */
-        font-weight: 800; /* 極太フォント */
-        font-size: 30px;  /* 文字をパッと見やすく少し大きめに */
+        background: transparent;
+        color: #000;
+        font-family: 'M PLUS Rounded 1c', sans-serif;
+        font-weight: 800;
+        font-size: 26px;
         line-height: 1.3;
         z-index: 999;
         text-align: center;
         pointer-events: none;
 
-        /* ★文字のまわりに綺麗な白いアウトライン（縁取り）を付ける設定 */
+        /* 文字のまわりに綺麗な白いアウトライン（縁取り）を付ける設定 */
         text-shadow: 
           3px  3px 0 #fff,
          -3px  3px 0 #fff,
@@ -123,8 +121,10 @@
       const MICROCMS_API_URL = 'https://event-ar-sf.microcms.io/api/v1/sanrei-foods-webar-event'; 
       const MICROCMS_API_KEY = 'kXzP9fV6eb4azihllPJGAQjarF5CkVWKZLX0'; 
 
-      // microCMSから取得したテキストを一時的に保存する変数
       let fetchedText = ""; 
+      
+      // ★追加：超高速な重複送信を防ぐためのロック用フラグ
+      let isDetected = false; 
 
       window.addEventListener('load', () => {
         overlay.style.display = 'flex';
@@ -133,7 +133,6 @@
       overlay.addEventListener('click', async () => {
         overlay.style.display = 'none';
 
-        // iOSに明示的にカメラ許可をリクエスト
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
           stream.getTracks().forEach(track => track.stop());
@@ -142,7 +141,6 @@
           return;
         }
 
-        // microCMSから「テキストだけ」を動的に取得する処理
         try {
           const response = await fetch(MICROCMS_API_URL, {
             headers: {
@@ -152,7 +150,7 @@
           const data = await response.json();
           
           if (data) {
-            fetchedText = data.ar_text2 || ""; // テキストを取得して変数に保存
+            fetchedText = data.ar_text2 || "";
           } else {
             throw new Error('有効なデータが取得できませんでした。');
           }
@@ -161,35 +159,48 @@
           return;
         }
 
-        // iOSの自動再生制限を回避
         try {
           await video.play();
           video.pause();
           video.currentTime = 0;
         } catch(e) {}
 
-        // MindAR開始
         sceneEl.systems['mindar-image-system'].start();
       });
 
       // マーカーが認識されたとき
       target.addEventListener('targetFound', () => {
-        if (fetchedText) {
-          textOverlay.innerText = fetchedText; // テキストの内容を注入
-          textOverlay.style.display = 'block'; // テキストを表示
-        }
-        video.play();
+        // ★改善：まだ送信ロックがかかっていない場合のみGAへ送る
+        if (!isDetected) {
+          isDetected = true; // ロックをかける
 
-        // マーカーが認識された瞬間のイベントをGAに送信
-        gtag('event', 'ar_target_found', {
-          'event_category': 'AR_Interaction',
-          'event_label': 'Sanrei_Foods_Video_Play'
-        });
+          try {
+            // 動画再生より前に、最優先でGAにイベントを送信
+            gtag('event', 'ar_target_found', {
+              'event_category': 'AR_Interaction',
+              'event_label': 'Sanrei_Foods_Video_Play'
+            });
+          } catch (e) {
+            console.error('GA Event Error:', e);
+          }
+        }
+
+        if (fetchedText) {
+          textOverlay.innerText = fetchedText;
+          textOverlay.style.display = 'block';
+        }
+        
+        try {
+          video.play();
+        } catch(e) {
+          console.error('Video Play Error:', e);
+        }
       });
 
       // マーカーを見失ったとき
       target.addEventListener('targetLost', () => {
-        textOverlay.style.display = 'none'; // テキストを非表示にする
+        isDetected = false; // 見失ったらロックを解除して、次回また送信できるようにする
+        textOverlay.style.display = 'none';
         video.pause();
       });
     </script>
