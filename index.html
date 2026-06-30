@@ -11,8 +11,8 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      // デバッグモードを有効化
-      gtag('config', 'G-6RZBHRREXH', { 'debug_mode': true });
+      // ★ページビューを確実に拾うため、元の標準設定（デバッグモードなし）に戻しました
+      gtag('config', 'G-6RZBHRREXH');
     </script>
 
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800&display=swap" rel="stylesheet">
@@ -117,14 +117,11 @@
       const sceneEl = document.querySelector('a-scene');
       const target = document.querySelector('[mindar-image-target]');
 
-      // microCMSの設定情報
+      // microCMSの設定情報（変更せず維持しています）
       const MICROCMS_API_URL = 'https://event-ar-sf.microcms.io/api/v1/sanrei-foods-webar-text'; 
       const MICROCMS_API_KEY = 'kXzP9fV6eb4azihllPJGAQjarF5CkVWKZLX0'; 
 
       let fetchedText = ""; 
-      
-      // ★追加：超高速な重複送信を防ぐためのロック用フラグ
-      let isDetected = false; 
 
       window.addEventListener('load', () => {
         overlay.style.display = 'flex';
@@ -150,6 +147,7 @@
           const data = await response.json();
           
           if (data) {
+            // 変更後のフィールド名「ar_text2」をそのまま維持しています
             fetchedText = data.ar_text2 || "";
           } else {
             throw new Error('有効なデータが取得できませんでした。');
@@ -170,21 +168,7 @@
 
       // マーカーが認識されたとき
       target.addEventListener('targetFound', () => {
-        // ★改善：まだ送信ロックがかかっていない場合のみGAへ送る
-        if (!isDetected) {
-          isDetected = true; // ロックをかける
-
-          try {
-            // 動画再生より前に、最優先でGAにイベントを送信
-            gtag('event', 'ar_target_found', {
-              'event_category': 'AR_Interaction',
-              'event_label': 'Sanrei_Foods_Video_Play'
-            });
-          } catch (e) {
-            console.error('GA Event Error:', e);
-          }
-        }
-
+        // ★改善：カスタムイベント関連のエラー要因をすべて排除し、以前のシンプルな処理に戻しました
         if (fetchedText) {
           textOverlay.innerText = fetchedText;
           textOverlay.style.display = 'block';
@@ -199,7 +183,6 @@
 
       // マーカーを見失ったとき
       target.addEventListener('targetLost', () => {
-        isDetected = false; // 見失ったらロックを解除して、次回また送信できるようにする
         textOverlay.style.display = 'none';
         video.pause();
       });
