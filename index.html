@@ -87,14 +87,16 @@
       <a-assets>
         <video
           id="ar-video"
-          src="videos/movie_ar1.mp4" 
           preload="auto"
           loop="true"
           muted
           playsinline
           webkit-playsinline
           crossorigin="anonymous"
-        ></video>
+        >
+          <source src="videos/movie_ar1.webm" type="video/webm">
+          <source src="videos/movie_ar1.mov" type="video/quicktime">
+        </video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
